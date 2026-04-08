@@ -102,7 +102,7 @@ export default function WallCalendar() {
     if (startDate && endDate) {
       return `Notes for ${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`;
     }
-    return `General ${monthNames[currentDate.getMonth()]} Memos`;
+    return `Notes`;
   };
 
   /**
@@ -249,9 +249,15 @@ export default function WallCalendar() {
   ];
 
   // Pad with next month's days to complete the last week
+  // Ensure EXACTLY 6 weeks (42 days) so the calendar height NEVER changes between months
+  const fullyPaddedDays = [
+    ...paddedDays,
+    ...Array(Math.max(0, 42 - paddedDays.length)).fill(null)
+  ];
+  
   const weeks = [];
-  for (let i = 0; i < paddedDays.length; i += 7) {
-    weeks.push(paddedDays.slice(i, i + 7));
+  for (let i = 0; i < fullyPaddedDays.length; i += 7) {
+    weeks.push(fullyPaddedDays.slice(i, i + 7));
   }
 
   return (
@@ -267,91 +273,76 @@ export default function WallCalendar() {
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes flipCard {
-          0% { transform: rotateX(0deg); }
-          50% { transform: rotateX(90deg); }
-          100% { transform: rotateX(0deg); }
+          0% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+          49% { transform: rotateX(90deg); opacity: 0.5; filter: brightness(0.8); }
+          51% { transform: rotateX(-90deg); opacity: 0; filter: brightness(1.2); }
+          100% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
         }
         .calendar-flip {
-          animation: flipCard 0.6s ease-in-out;
+          animation: flipCard 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+          transform-origin: top center;
+          transform-style: preserve-3d;
         }
         .calendar-card {
           animation: slideIn 0.5s ease-out;
-          perspective: 1000px;
         }
       `}</style>
       <div className="absolute inset-0 wall-bg"></div>
 
       {/* Main Container - Desktop and Mobile Layout */}
-      <div className="relative z-10 w-full h-full flex flex-col lg:flex-row gap-4 lg:gap-8 items-stretch justify-center max-w-[1400px] max-h-full">
+      <div className="relative z-10 w-full h-full flex flex-col xl:flex-row gap-6 lg:gap-8 items-center justify-center max-w-[1250px] max-h-full mx-auto" style={{ perspective: isFlipping ? '1500px' : 'none' }}>
         
         {/* CALENDAR - Main Card (Left on Desktop, Top on Mobile) */}
-        <div className={`calendar-card ${isFlipping ? 'calendar-flip' : ''} bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 w-full lg:flex-1 flex flex-col order-1 lg:order-none relative max-h-full min-h-0`}
+        <div className={`calendar-card ${isFlipping ? 'calendar-flip' : ''} bg-white rounded-xl overflow-hidden border border-gray-100 w-full max-w-[850px] flex flex-col order-1 xl:order-none relative shrink-0`}
              style={{
-               boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.5)',
-               background: 'linear-gradient(to bottom, #ffffff 0%, #fdfdfd 100%)'
+               boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)',
              }}>
           
-          {/* Wall Calendar Spiral Bindings */}
-          <div className="absolute top-0 left-0 right-0 h-6 flex justify-around px-8 z-30 pointer-events-none">
-            {[...Array(14)].map((_, i) => (
-              <div key={i} className="relative">
-                <div className="w-3 h-8 -mt-2 bg-gradient-to-b from-gray-200 via-gray-400 to-gray-500 rounded-full shadow-md border border-gray-300"></div>
-                <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-800 rounded-full shadow-inner opacity-40 -z-10"></div>
+          {/* Wall Calendar Spiral Bindings - Minimalist */}
+          <div className="absolute top-2 left-0 right-0 h-6 flex justify-around px-8 z-30 pointer-events-none">
+            {[...Array(20)].map((_, i) => (
+              <div key={i} className="relative flex flex-col items-center">
+                <div className="w-1.5 h-6 -mt-1 bg-gradient-to-b from-gray-200 to-gray-300 rounded-sm shadow-sm border border-gray-300/50"></div>
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-800 rounded-full shadow-inner opacity-60 mix-blend-multiply"></div>
               </div>
             ))}
           </div>
           
-          {/* ======================== */}
-          {/* HERO IMAGE - Large Banner */}
-          {/* ======================== */}
-          <div className="w-full flex-grow relative overflow-hidden bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center shadow-inner min-h-[150px]">
-            <img
-              src={monthImages[currentDate.getMonth()]}
-              alt={`${monthNames[currentDate.getMonth()]} Calendar`}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-            {/* Subtle overlay for text legibility if needed */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10"></div>
-          </div>
-
-          {/* ======================== */}
-          {/* MONTH & YEAR - Compact Header */}
-          {/* ======================== */}
-          <div className="px-4 py-2 lg:py-3 bg-white border-b border-gray-100 text-center relative z-20 shadow-[0_4px_10px_-10px_rgba(0,0,0,0.1)] shrink-0 flex items-center justify-center gap-2">
-            <h1 className="text-2xl lg:text-4xl font-black text-gray-800 tracking-tight drop-shadow-sm">
-              {monthNames[currentDate.getMonth()]}
-            </h1>
-            <p className="text-lg lg:text-3xl font-bold text-blue-600 tracking-wide">
-              {currentDate.getFullYear()}
-            </p>
-          </div>
-
-          {/* ======================== */}
-          {/* NAVIGATION - Month Switcher */}
-          {/* ======================== */}
-          <div className="flex gap-3 px-4 py-2 lg:py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 shrink-0">
-            <button
-              onClick={handlePrevMonth}
-              className="flex-1 flex items-center justify-center h-10 rounded-lg bg-white border-2 border-blue-400 text-blue-600 hover:bg-blue-50 active:scale-95 transition-all duration-150 font-bold text-sm shadow-sm"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="flex-1 flex items-center justify-center text-sm font-semibold text-gray-600">
-              Navigate
+          {/* Add a top padding so absolutely no content rendering begins inside the bindings area! */}
+          <div className="flex flex-col lg:flex-row w-full pt-10 bg-white relative z-10 rounded-xl overflow-hidden">
+            {/* LEFT: Hero Image */}
+            <div className="w-full lg:w-[320px] aspect-[4/3] lg:aspect-auto lg:h-[420px] relative overflow-hidden bg-gray-100 shrink-0 border-r border-gray-200">
+              <img
+                src={monthImages[currentDate.getMonth()]}
+                alt={`${monthNames[currentDate.getMonth()]} Calendar`}
+                className="absolute inset-0 w-full h-full object-cover object-center"
+                style={{ imageRendering: '-webkit-optimize-contrast' }}
+                loading="eager"
+              />
             </div>
-            <button
-              onClick={handleNextMonth}
-              className="flex-1 flex items-center justify-center h-10 rounded-lg bg-white border-2 border-blue-400 text-blue-600 hover:bg-blue-50 active:scale-95 transition-all duration-150 font-bold text-sm shadow-sm"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+            
+            {/* RIGHT: Calendar Platform */}
+            <div className="flex-1 flex flex-col shrink-0 lg:h-[420px]">
 
-          {/* ======================== */}
-          {/* CALENDAR GRID - Minimalist Layout */}
-          {/* ======================== */}
-          <div className="px-4 py-2 lg:px-6 lg:py-4 shrink-0 flex flex-col bg-white">
+              {/* Header & Navigate Merged */}
+              <div className="px-6 py-4 bg-white border-b border-gray-50 flex items-center justify-between shrink-0">
+                <button onClick={handlePrevMonth} className="flex items-center justify-center h-9 w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="text-center flex-1">
+                  <h1 className="text-2xl font-black text-gray-800 tracking-tight">{monthNames[currentDate.getMonth()]}</h1>
+                  <p className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mt-0.5">{currentDate.getFullYear()}</p>
+                </div>
+                <button onClick={handleNextMonth} className="flex items-center justify-center h-9 w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+              
+              {/* Bottom Split: Grid and Notes */}
+              <div className="flex flex-col lg:flex-row flex-1 min-h-0 bg-white">
+
+                {/* CALENDAR GRID */}
+                <div className="w-full lg:w-[55%] px-4 py-4 shrink-0 flex flex-col border-r border-gray-100">
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-2 lg:mb-3 shrink-0">
               {weekDays.map((day) => (
@@ -392,51 +383,42 @@ export default function WallCalendar() {
               )}
             </div>
 
-            {/* Selected Range Display */}
-            {(startDate || endDate) && (
-              <div className="mt-2 pt-2 border-t-2 border-blue-100 shrink-0">
-                <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">📌 Selected Period</p>
-                <p className="text-sm font-bold text-blue-600 mb-2">
-                  {startDate && format(startDate, "MMM d")}
-                  {endDate && ` → ${format(endDate, "MMM d")}`}
-                </p>
-                <button
-                  onClick={handleClearRange}
-                  className="text-xs text-blue-500 hover:text-blue-700 font-bold transition-colors"
-                >
-                  ✕ Clear Selection
-                </button>
+                </div>
+
+                {/* NOTES INTEGRATED */}
+                <div className="w-full lg:w-[45%] flex flex-col shrink-0 bg-white border-l border-gray-50">
+                  <div className="px-5 py-4 shrink-0">
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">{getNotesLabel()}</h3>
+                  </div>
+                  <textarea
+                    value={tempNotes}
+                    onChange={(e) => setTempNotes(e.target.value)}
+                    placeholder="Write your notes, tasks, or reminders here..."
+                    className="flex-grow px-5 py-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none resize-none border-none bg-transparent"
+                  />
+                  {(startDate || endDate) && (
+                    <div className="px-5 py-3 border-t border-gray-50 shrink-0 bg-transparent flex justify-between items-center">
+                      <p className="text-[10px] font-semibold text-gray-400 tracking-wide">
+                        {startDate && format(startDate, "MMM d")}
+                        {endDate && ` → ${format(endDate, "MMM d")}`}
+                      </p>
+                      <button onClick={handleClearRange} className="text-[10px] text-gray-400 hover:text-gray-800 transition-colors">Clear</button>
+                    </div>
+                  )}
+                </div>
+
               </div>
-            )}
+            </div>
           </div>
         </div>
 
         {/* ======================== */}
-        {/* SIDEBAR - Notes & Info (Right on Desktop, Below on Mobile) */}
+        {/* SIDEBAR - Table/Vase */}
         {/* ======================== */}
-        <div className="w-full lg:w-96 flex flex-col gap-4 lg:gap-6 order-2 lg:order-none shrink min-h-0 max-h-full">
-          {/* Notes Panel */}
-          <div className="calendar-card bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 flex flex-col flex-1 min-h-0"
-               style={{
-                 boxShadow: '0 15px 50px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05)',
-                 background: 'linear-gradient(to bottom, #ffffff 0%, #fafafa 100%)'
-               }}>
-            <div className="px-4 py-3 lg:px-6 lg:py-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 shrink-0">
-              <h3 className="text-sm font-bold text-emerald-700 uppercase tracking-wider">📝 {getNotesLabel()}</h3>
-            </div>
-            <textarea
-              value={tempNotes}
-              onChange={(e) => setTempNotes(e.target.value)}
-              placeholder="Write your notes, tasks, or reminders here..."
-              className="flex-grow px-4 py-2 lg:px-6 lg:py-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none resize-none border-none bg-transparent min-h-[60px]"
-            />
-            <div className="px-4 py-2 lg:px-6 lg:py-3 bg-emerald-50 border-t border-emerald-100 text-xs text-emerald-600 font-semibold shrink-0">
-              💾 Auto-saved
-            </div>
-          </div>
+        <div className="w-full xl:w-[340px] flex flex-col shrink min-h-0 max-h-full">
 
           {/* Simple Wooden Table with Vase */}
-          <div className="calendar-card bg-gradient-to-b from-amber-50 to-orange-50 rounded-xl shadow-lg overflow-hidden border border-amber-200 p-4 lg:p-6 pb-2 lg:pb-2 flex flex-col items-center justify-end shrink-0 h-48 lg:h-[30vh] min-h-[200px]"
+          <div className="calendar-card bg-gradient-to-b from-amber-50 to-orange-50 rounded-xl shadow-lg overflow-hidden border border-amber-200 p-4 lg:p-6 pb-2 lg:pb-2 flex flex-col items-center justify-end shrink-0 h-48 lg:h-[460px] min-h-[200px]"
                style={{ perspective: '1200px' }}>
             
             {/* Background */}
