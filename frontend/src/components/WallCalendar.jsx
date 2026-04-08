@@ -87,11 +87,6 @@ export default function WallCalendar() {
    * Returns either "range-YYYYMMDD-YYYYMMDD" or "general-YYYY-MM"
    */
   const getNoteKey = () => {
-    if (startDate && endDate) {
-      const start = format(startDate, "yyyyMMdd");
-      const end = format(endDate, "yyyyMMdd");
-      return `range-${start}-${end}`;
-    }
     return `general-${format(currentDate, "yyyy-MM")}`;
   };
 
@@ -102,7 +97,7 @@ export default function WallCalendar() {
     if (startDate && endDate) {
       return `Notes for ${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`;
     }
-    return `Notes`;
+    return `Notes for ${monthNames[currentDate.getMonth()]}`;
   };
 
   /**
@@ -143,6 +138,8 @@ export default function WallCalendar() {
     setIsFlipping(true);
     setTimeout(() => {
       setCurrentDate(subMonths(currentDate, 1));
+      setStartDate(null);
+      setEndDate(null);
       setIsFlipping(false);
     }, 300);
   };
@@ -154,12 +151,18 @@ export default function WallCalendar() {
     setIsFlipping(true);
     setTimeout(() => {
       setCurrentDate(addMonths(currentDate, 1));
+      setStartDate(null);
+      setEndDate(null);
       setIsFlipping(false);
     }, 300);
   };
 
   // ========================
   // LOCAL STORAGE PERSISTENCE
+  // ========================
+  // Load notes from localStorage when the component mounts or the note key changes
+  // ========================
+  // LOCAL STORAGE PERSISTENCE & PRELOADING
   // ========================
   // Load notes from localStorage when the component mounts or the note key changes
   useEffect(() => {
@@ -174,13 +177,38 @@ export default function WallCalendar() {
     }
   }, [currentDate, startDate, endDate]);
 
-  // Save notes to localStorage whenever they change
+  // Preload all month images to prevent pausing during transitions
   useEffect(() => {
+    const imagesToPreload = [
+      "/images/months/01-jan.jpg",
+      "/images/months/02-feb.jpg",
+      "/images/months/03-march.webp",
+      "/images/months/04-april.jpeg",
+      "/images/months/05-may.webp",
+      "/images/months/06-june.webp",
+      "/images/months/07-july.jpg",
+      "/images/months/08-august.webp",
+      "/images/months/09-sep.jpeg",
+      "/images/months/10-oct.jpg",
+      "/images/months/11-nov.jpg",
+      "/images/months/12-dec.jpg",
+    ];
+    imagesToPreload.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
+
+  const handleNotesChange = (e) => {
+    const val = e.target.value;
+    setTempNotes(val);
     const key = getNoteKey();
-    if (tempNotes) {
-      localStorage.setItem(key, tempNotes);
+    if (val) {
+      localStorage.setItem(key, val);
+    } else {
+      localStorage.removeItem(key);
     }
-  }, [tempNotes]); // Change when tempNotes updates
+  };
 
   // ========================
   // CALENDAR GENERATION
@@ -392,7 +420,7 @@ export default function WallCalendar() {
                   </div>
                   <textarea
                     value={tempNotes}
-                    onChange={(e) => setTempNotes(e.target.value)}
+                    onChange={handleNotesChange}
                     placeholder="Write your notes, tasks, or reminders here..."
                     className="flex-grow px-5 py-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none resize-none border-none bg-transparent"
                   />
