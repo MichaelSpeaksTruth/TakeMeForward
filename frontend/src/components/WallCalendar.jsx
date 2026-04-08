@@ -261,7 +261,7 @@ export default function WallCalendar() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#E8E4D9] overflow-hidden flex items-center justify-center p-0 xl:p-8">
+    <div className="fixed inset-0 bg-[#E8E4D9] overflow-hidden flex flex-col items-center justify-center p-0 xl:p-8">
       {/* Wall Texture Background */}
       <style>{`
         .wall-bg {
@@ -290,7 +290,7 @@ export default function WallCalendar() {
       <div className="absolute inset-0 wall-bg"></div>
 
       {/* Main Container - Desktop and Mobile Layout */}
-      <div className="relative z-10 w-full h-[100dvh] xl:h-auto flex flex-row gap-6 xl:gap-8 items-center justify-start xl:justify-center max-w-[1250px] mx-auto overflow-x-auto xl:overflow-visible snap-x snap-mandatory px-[5vw] xl:px-0 [&::-webkit-scrollbar]:hidden" style={{ perspective: isFlipping ? '1500px' : 'none', scrollbarWidth: 'none' }}>
+      <div className="relative z-10 w-full flex-1 flex flex-row gap-6 xl:gap-8 items-center justify-start xl:justify-center max-w-[1250px] mx-auto overflow-x-auto xl:overflow-visible snap-x snap-mandatory px-[5vw] xl:px-0 [&::-webkit-scrollbar]:hidden" style={{ perspective: isFlipping ? '1500px' : 'none', scrollbarWidth: 'none' }}>
         
         {/* CALENDAR - Main Card (Left on Desktop, Top on Mobile) */}
         <div className={`calendar-card ${isFlipping ? 'calendar-flip' : ''} bg-white rounded-xl overflow-hidden border border-gray-100 w-[90vw] xl:w-full max-w-[850px] flex flex-col relative shrink-0 snap-center`}
@@ -707,7 +707,7 @@ export default function WallCalendar() {
       </div>
 
       {/* Footer Branding */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-none z-20 overflow-visible">
+      <div className="w-full shrink-0 flex items-center justify-center pb-6 xl:pb-0 pt-2 z-20 overflow-visible">
         <div className="px-5 py-1.5 rounded-full bg-gradient-to-r from-[#0a0a0a] via-[#1a0a2a] to-[#0a0a0a] border border-[#D4AF37] shadow-[0_4px_15px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.1)] flex items-center justify-center">
           <p className="text-[10px] md:text-[11px] font-bold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-[#FFF3B0] via-[#D4AF37] to-[#FFF3B0] whitespace-nowrap">
             Made by : Anurag Kumar Verma
