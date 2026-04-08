@@ -74,8 +74,8 @@ export default function WallCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [notes, setNotes] = useState("");
-  const [tempNotes, setTempNotes] = useState("");
+  const [notes, setNotes] = useState([]);
+  const [tempNoteContent, setTempNoteContent] = useState("");
   const [isFlipping, setIsFlipping] = useState(false);
 
   // ========================
@@ -83,21 +83,24 @@ export default function WallCalendar() {
   // ========================
 
   /**
-   * Generates a unique key for storing notes based on selection
-   * Returns either "range-YYYYMMDD-YYYYMMDD" or "general-YYYY-MM"
+   * Generates a unique key for storing notes based on month/year
+   * Notes always persist in their original month
    */
   const getNoteKey = () => {
-    return `general-${format(currentDate, "yyyy-MM")}`;
+    return `notes-${format(currentDate, "yyyy-MM")}`;
   };
 
   /**
-   * Generates a label for the notes textarea
+   * Get date/duration text for a note
    */
-  const getNotesLabel = () => {
-    if (startDate && endDate) {
-      return `Notes for ${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`;
+  const getNoteDateLabel = (note) => {
+    if (note.selectedStartDate && note.selectedEndDate) {
+      return `${format(new Date(note.selectedStartDate), "MMM d")} - ${format(new Date(note.selectedEndDate), "MMM d")}`;
     }
-    return `Notes for ${monthNames[currentDate.getMonth()]}`;
+    if (note.selectedDate) {
+      return format(new Date(note.selectedDate), "MMM d, yyyy");
+    }
+    return "Month Note";
   };
 
   /**
@@ -157,6 +160,48 @@ export default function WallCalendar() {
     }, 300);
   };
 
+  /**
+   * Add a new note
+   */
+  const handleAddNote = () => {
+    if (!tempNoteContent.trim()) return;
+    
+    const newNote = {
+      id: Date.now(),
+      content: tempNoteContent,
+      timestamp: new Date().toISOString(),
+      selectedDate: startDate ? startDate.toISOString() : null,
+      selectedStartDate: startDate && endDate ? startDate.toISOString() : null,
+      selectedEndDate: startDate && endDate ? endDate.toISOString() : null,
+    };
+    
+    const updatedNotes = [...notes, newNote];
+    setNotes(updatedNotes);
+    
+    // Save to localStorage - always by month
+    const key = getNoteKey();
+    localStorage.setItem(key, JSON.stringify(updatedNotes));
+    
+    // Reset input but keep the date selection
+    setTempNoteContent("");
+  };
+
+  /**
+   * Delete a note by ID
+   */
+  const handleDeleteNote = (noteId) => {
+    const updatedNotes = notes.filter(note => note.id !== noteId);
+    setNotes(updatedNotes);
+    
+    // Save to localStorage
+    const key = getNoteKey();
+    if (updatedNotes.length > 0) {
+      localStorage.setItem(key, JSON.stringify(updatedNotes));
+    } else {
+      localStorage.removeItem(key);
+    }
+  };
+
   // ========================
   // LOCAL STORAGE PERSISTENCE
   // ========================
@@ -169,12 +214,16 @@ export default function WallCalendar() {
     const key = getNoteKey();
     const stored = localStorage.getItem(key);
     if (stored) {
-      setTempNotes(stored);
-      setNotes(stored);
+      try {
+        setNotes(JSON.parse(stored));
+      } catch {
+        // Fallback for old string format
+        setNotes([{ id: Date.now(), classification: "note", content: stored }]);
+      }
     } else {
-      setTempNotes("");
-      setNotes("");
+      setNotes([]);
     }
+    setTempNoteContent("");
   }, [currentDate, startDate, endDate]);
 
   // Preload all month images to prevent pausing during transitions
@@ -200,14 +249,26 @@ export default function WallCalendar() {
   }, []);
 
   const handleNotesChange = (e) => {
-    const val = e.target.value;
-    setTempNotes(val);
-    const key = getNoteKey();
-    if (val) {
-      localStorage.setItem(key, val);
-    } else {
-      localStorage.removeItem(key);
+    setTempNoteContent(e.target.value);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      handleAddNote();
     }
+  };
+
+  /**
+   * Get current selection label for the input header
+   */
+  const getCurrentSelectionLabel = () => {
+    if (startDate && endDate) {
+      return `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`;
+    }
+    if (startDate) {
+      return format(startDate, "MMM d, yyyy");
+    }
+    return monthNames[currentDate.getMonth()];
   };
 
   // ========================
@@ -253,6 +314,12 @@ export default function WallCalendar() {
           end: endDate,
         })) {
       return `${baseClasses} bg-blue-100 text-blue-900`;
+    }
+
+    // Sunday - red text
+    const isSunday = day.getDay() === 0;
+    if (isSunday) {
+      return `${baseClasses} bg-transparent hover:bg-gray-100 text-red-600`;
     }
 
     // Regular day in month
@@ -413,26 +480,65 @@ export default function WallCalendar() {
 
                 </div>
 
-                {/* NOTES INTEGRATED */}
+                {/* NOTES PANEL - SIMPLIFIED */}
                 <div className="w-full lg:w-[45%] flex flex-col shrink-0 bg-white border-l border-gray-50">
-                  <div className="px-5 py-4 shrink-0">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">{getNotesLabel()}</h3>
+                  {/* Header with current selection */}
+                  <div className="px-5 py-3 shrink-0 border-b border-gray-50">
+                    <h3 className="text-[11px] font-bold text-gray-700">📅 {getCurrentSelectionLabel()}</h3>
+                    {(startDate || endDate) && (
+                      <button
+                        onClick={handleClearRange}
+                        className="text-[9px] text-gray-400 hover:text-gray-700 transition-colors mt-1"
+                      >
+                        Clear selection
+                      </button>
+                    )}
                   </div>
-                  <textarea
-                    value={tempNotes}
-                    onChange={handleNotesChange}
-                    placeholder="Write your notes, tasks, or reminders here..."
-                    className="flex-grow px-5 py-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none resize-none border-none bg-transparent"
-                  />
-                  {(startDate || endDate) && (
-                    <div className="px-5 py-3 border-t border-gray-50 shrink-0 bg-transparent flex justify-between items-center">
-                      <p className="text-[10px] font-semibold text-gray-400 tracking-wide">
-                        {startDate && format(startDate, "MMM d")}
-                        {endDate && ` → ${format(endDate, "MMM d")}`}
-                      </p>
-                      <button onClick={handleClearRange} className="text-[10px] text-gray-400 hover:text-gray-800 transition-colors">Clear</button>
-                    </div>
-                  )}
+
+                  {/* Notes List */}
+                  <div className="flex-grow overflow-y-auto px-5 py-3 space-y-2">
+                    {notes.length === 0 ? (
+                      <p className="text-[12px] text-gray-300 italic py-4">No notes for {monthNames[currentDate.getMonth()]}. Add one below!</p>
+                    ) : (
+                      notes.map((note) => (
+                        <div key={note.id} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="text-[10px] font-semibold text-gray-500">
+                              {getNoteDateLabel(note)}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+                              title="Delete note"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                          <p className="text-[12px] text-gray-700 break-words whitespace-pre-wrap">
+                            {note.content}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Note Section - Textarea */}
+                  <div className="px-5 py-3 border-t border-gray-50 shrink-0 bg-transparent">
+                    <textarea
+                      value={tempNoteContent}
+                      onChange={handleNotesChange}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Add a Note..."
+                      className="w-full px-3 py-2 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-16"
+                    />
+                    <button
+                      onClick={handleAddNote}
+                      disabled={!tempNoteContent.trim()}
+                      className="mt-2 w-full px-3 py-2 bg-blue-500 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Add Note
+                    </button>
+                  </div>
                 </div>
 
               </div>
