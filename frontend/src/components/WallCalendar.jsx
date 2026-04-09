@@ -76,7 +76,7 @@ export default function WallCalendar() {
   const [endDate, setEndDate] = useState(null);
   const [notes, setNotes] = useState([]);
   const [tempNoteContent, setTempNoteContent] = useState("");
-  const [flipDirection, setFlipDirection] = useState(null);
+  const [flipState, setFlipState] = useState({ direction: null, oldDate: null, oldNotes: [] });
 
   // ========================
   // UTILITIES
@@ -141,32 +141,28 @@ export default function WallCalendar() {
    * Navigate to the previous month
    */
   const handlePrevMonth = () => {
-    if (flipDirection) return; // Prevent double clicking
-    setFlipDirection("prev");
+    if (flipState.direction) return; // Prevent double clicking
+    setFlipState({ direction: "prev", oldDate: currentDate, oldNotes: notes });
+    setCurrentDate(subMonths(currentDate, 1));
+    setStartDate(null);
+    setEndDate(null);
     setTimeout(() => {
-      setCurrentDate(subMonths(currentDate, 1));
-      setStartDate(null);
-      setEndDate(null);
-    }, 400); // perfectly hits the 50% mark of 0.8s animation
-    setTimeout(() => {
-      setFlipDirection(null);
-    }, 800);
+      setFlipState({ direction: null, oldDate: null, oldNotes: [] });
+    }, 1850); 
   };
 
   /**
    * Navigate to the next month
    */
   const handleNextMonth = () => {
-    if (flipDirection) return; // Prevent double clicking
-    setFlipDirection("next");
+    if (flipState.direction) return; // Prevent double clicking
+    setFlipState({ direction: "next", oldDate: currentDate, oldNotes: notes });
+    setCurrentDate(addMonths(currentDate, 1));
+    setStartDate(null);
+    setEndDate(null);
     setTimeout(() => {
-      setCurrentDate(addMonths(currentDate, 1));
-      setStartDate(null);
-      setEndDate(null);
-    }, 400);
-    setTimeout(() => {
-      setFlipDirection(null);
-    }, 800);
+      setFlipState({ direction: null, oldDate: null, oldNotes: [] });
+    }, 1850);
   };
 
   /**
@@ -381,33 +377,29 @@ export default function WallCalendar() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes pageTurnNext {
-          0% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
-          40% { opacity: 1; filter: brightness(0.9); }
-          49.99% { transform: rotateX(90deg); opacity: 0; filter: brightness(0.8); }
-          50% { transform: rotateX(-90deg); opacity: 0; filter: brightness(0.8); }
-          60% { opacity: 1; filter: brightness(0.9); }
-          100% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+        @keyframes pageSlowTurnNext {
+          0% { transform: rotateX(0deg); opacity: 1; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+          45% { opacity: 1; filter: drop-shadow(0 30px 20px rgba(0,0,0,0.25)); }
+          75% { transform: rotateX(135deg); opacity: 0; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+          100% { transform: rotateX(180deg); opacity: 0; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
         }
-        @keyframes pageTurnPrev {
-          0% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
-          40% { opacity: 1; filter: brightness(0.9); }
-          49.99% { transform: rotateX(-90deg); opacity: 0; filter: brightness(0.8); }
-          50% { transform: rotateX(90deg); opacity: 0; filter: brightness(0.8); }
-          60% { opacity: 1; filter: brightness(0.9); }
-          100% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+        @keyframes pageSlowTurnPrev {
+          0% { transform: rotateX(180deg); opacity: 0; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+          25% { transform: rotateX(135deg); opacity: 0; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+          55% { opacity: 1; filter: drop-shadow(0 30px 20px rgba(0,0,0,0.25)); }
+          100% { transform: rotateX(0deg); opacity: 1; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
         }
-        .paper-flip-next {
-          animation: pageTurnNext 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-          transform-origin: center 20px;
+        .anim-turn-next {
+          animation: pageSlowTurnNext 1.8s ease-in-out forwards;
+          transform-origin: center 25px;
           transform-style: preserve-3d;
-          backface-visibility: hidden;
+          will-change: transform;
         }
-        .paper-flip-prev {
-          animation: pageTurnPrev 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-          transform-origin: center 20px;
+        .anim-turn-prev {
+          animation: pageSlowTurnPrev 1.8s ease-in-out forwards;
+          transform-origin: center 25px;
           transform-style: preserve-3d;
-          backface-visibility: hidden;
+          will-change: transform;
         }
         .calendar-card {
           animation: slideIn 0.5s ease-out;
@@ -436,147 +428,171 @@ export default function WallCalendar() {
             ))}
           </div>
           
-          {/* Add a top padding so absolutely no content rendering begins inside the bindings area! */}
-          <div className={`flex flex-col lg:flex-row w-full pt-7 lg:pt-10 flex-1 min-h-0 h-full bg-white relative z-10 rounded-xl overflow-hidden ${flipDirection === 'next' ? 'paper-flip-next' : flipDirection === 'prev' ? 'paper-flip-prev' : ''}`}>
-            {/* LEFT: Hero Image */}
-            <div className="w-full lg:w-[320px] h-[22%] min-h-[100px] lg:h-[420px] relative overflow-hidden bg-gray-100 shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200">
-              <img
-                src={monthImages[currentDate.getMonth()]}
-                alt={`${monthNames[currentDate.getMonth()]} Calendar`}
-                className="absolute inset-0 w-full h-full object-cover object-center"
-                style={{ imageRendering: '-webkit-optimize-contrast' }}
-                loading="eager"
-              />
-            </div>
-            
-            {/* RIGHT: Calendar Platform */}
-            <div className="flex-1 flex flex-col shrink-0 min-h-0 lg:h-[420px]">
-
-              {/* Header & Navigate Merged */}
-              <div className="px-4 py-2 lg:px-6 lg:py-4 bg-white border-b border-gray-50 flex items-center justify-between shrink-0">
-                <button onClick={handlePrevMonth} className="flex items-center justify-center h-8 w-8 lg:h-9 lg:w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
-                  <ChevronLeft size={20} />
-                </button>
-                <div className="text-center flex-1">
-                  <h1 className="text-xl lg:text-2xl font-black text-gray-800 tracking-tight">{monthNames[currentDate.getMonth()]}</h1>
-                  <p className="text-[10px] lg:text-[11px] font-bold text-gray-400 tracking-widest uppercase lg:mt-0.5">{currentDate.getFullYear()}</p>
-                </div>
-                <button onClick={handleNextMonth} className="flex items-center justify-center h-8 w-8 lg:h-9 lg:w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
-                  <ChevronRight size={20} />
-                </button>
-              </div>
+          {/* Component inner render helper for Calendar Content Layers */}
+          {(() => {
+            const renderCalendarContent = (dateObj, pageNotes, isAnimating) => {
+              if (!dateObj) return null;
               
-              {/* Bottom Split: Grid and Notes */}
-              <div className="flex flex-col lg:flex-row flex-1 min-h-0 bg-white">
+              const mStart = startOfMonth(dateObj);
+              const mEnd = endOfMonth(dateObj);
+              const cDays = eachDayOfInterval({
+                start: new Date(mStart.getFullYear(), mStart.getMonth(), 1),
+                end: new Date(mEnd.getFullYear(), mEnd.getMonth() + 1, 0),
+              });
+              const mDays = cDays.filter((day) => isSameMonth(day, dateObj));
+              const fDayOfWeek = mStart.getDay();
+              const pDays = [
+                ...Array(fDayOfWeek).fill(null),
+                ...mDays,
+                ...Array(Math.max(0, 42 - (fDayOfWeek + mDays.length))).fill(null)
+              ];
+              const wks = [];
+              for (let i = 0; i < pDays.length; i += 7) wks.push(pDays.slice(i, i + 7));
 
-                {/* CALENDAR GRID */}
-                <div className="w-full lg:w-[55%] px-3 py-2 sm:px-4 sm:py-3 lg:px-4 lg:py-4 shrink-0 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-gray-100 min-h-0">
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-1 lg:mb-3 shrink-0">
-              {weekDays.map((day) => (
-                <div
-                  key={day}
-                  className="text-center font-bold text-[9px] lg:text-[10px] text-gray-400 py-0.5 lg:py-1 uppercase tracking-widest"
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
+              // Using the same day classes formatting
+              const getDayClassesInner = (day) => {
+                const baseClasses = "h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center rounded-full font-bold text-xs sm:text-sm lg:text-base cursor-pointer transition-all duration-200 hover:shadow";
+                if (!isSameMonth(day, dateObj)) return `${baseClasses} text-gray-300 bg-transparent`;
+                if (startDate && isSameDay(day, startDate)) return `${baseClasses} bg-blue-600 text-white shadow-md`;
+                if (endDate && isSameDay(day, endDate)) return `${baseClasses} bg-blue-600 text-white shadow-md`;
+                if (startDate && endDate && isWithinInterval(day, { start: startDate, end: endDate })) return `${baseClasses} bg-blue-100 text-blue-900`;
+                if (day.getDay() === 0) return `${baseClasses} bg-transparent hover:bg-gray-100 text-red-600`;
+                return `${baseClasses} bg-transparent hover:bg-gray-100 text-gray-700`;
+              };
 
-            {/* Calendar Days Grid */}
-            <div className="grid grid-cols-7 gap-y-0.5 gap-x-1 sm:gap-y-1 lg:gap-y-2 lg:gap-x-2 pb-0.5 lg:pb-1">
-              {weeks.map((week, weekIndex) =>
-                week.map((day, dayIndex) => (
-                  <div
-                    key={`${weekIndex}-${dayIndex}`}
-                    className="flex justify-center"
-                    onClick={() => day && isSameMonth(day, currentDate) && handleDayClick(day)}
-                  >
-                    {day && isSameMonth(day, currentDate) ? (
-                      <div
-                        className={getDayClasses(day)}
-                        title={format(day, "EEEE, MMMM d, yyyy")}
-                      >
-                        {format(day, "d")}
-                      </div>
-                    ) : day ? (
-                      <div className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center text-xs sm:text-sm lg:text-base text-gray-300 font-semibold bg-transparent">
-                        {format(day, "d")}
-                      </div>
-                    ) : (
-                      <div className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 bg-transparent"></div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-                </div>
-
-                {/* NOTES PANEL - SIMPLIFIED */}
-                <div className="w-full lg:w-[45%] flex flex-col shrink-0 flex-1 min-h-[140px] bg-white border-l border-gray-50 overflow-hidden">
-                  {/* Header with current selection */}
-                  <div className="px-4 py-2 shrink-0 border-b border-gray-50 flex items-center justify-between">
-                    <h3 className="text-[10px] lg:text-[11px] font-bold text-gray-700">📅 {getCurrentSelectionLabel()}</h3>
-                    {(startDate || endDate) && (
-                      <button
-                        onClick={handleClearRange}
-                        className="text-[9px] text-gray-400 hover:text-gray-700 transition-colors"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Notes List */}
-                  <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5 lg:space-y-2 min-h-[50px]">
-                    {notes.length === 0 ? (
-                      <p className="text-[11px] lg:text-[12px] text-gray-300 italic py-2">No notes for {monthNames[currentDate.getMonth()]}.</p>
-                    ) : (
-                      notes.map((note) => (
-                        <div key={note.id} className="p-2 lg:p-3 rounded-lg bg-gray-50 border border-gray-200">
-                          <div className="flex items-start justify-between gap-2 mb-0.5 lg:mb-1">
-                            <span className="text-[9px] lg:text-[10px] font-semibold text-gray-500">
-                              {getNoteDateLabel(note)}
-                            </span>
-                            <button
-                              onClick={() => handleDeleteNote(note.id)}
-                              className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
-                              title="Delete note"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                          <p className="text-[11px] lg:text-[12px] text-gray-700 break-words whitespace-pre-wrap">
-                            {note.content}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Add Note Section - Textarea */}
-                  <div className="px-4 py-2 border-t border-gray-50 shrink-0 bg-transparent">
-                    <textarea
-                      value={tempNoteContent}
-                      onChange={handleNotesChange}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Add a Note..."
-                      className="w-full px-2 py-1.5 lg:py-2 text-[11px] lg:text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-10 lg:h-16"
+              return (
+                <div className={`flex flex-col lg:flex-row w-full pt-7 lg:pt-10 flex-1 min-h-0 h-full bg-white relative z-10 rounded-xl overflow-hidden ${isAnimating ? 'pointer-events-none' : ''}`}>
+                  {/* LEFT: Hero Image */}
+                  <div className="w-full lg:w-[320px] h-[22%] min-h-[100px] lg:h-[420px] relative overflow-hidden bg-gray-100 shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200">
+                    <img
+                      src={monthImages[dateObj.getMonth()]}
+                      alt={`${monthNames[dateObj.getMonth()]} Calendar`}
+                      className="absolute inset-0 w-full h-full object-cover object-center"
+                      style={{ imageRendering: '-webkit-optimize-contrast' }}
+                      loading="eager"
                     />
-                    <button
-                      onClick={handleAddNote}
-                      disabled={!tempNoteContent.trim()}
-                      className="mt-1.5 lg:mt-2 w-full px-2 py-1.5 lg:py-2 bg-blue-500 text-white text-[11px] lg:text-[12px] font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Add Note
-                    </button>
+                  </div>
+                  
+                  {/* RIGHT: Calendar Platform */}
+                  <div className="flex-1 flex flex-col shrink-0 min-h-0 lg:h-[420px]">
+                    <div className="px-4 py-2 lg:px-6 lg:py-4 bg-white border-b border-gray-50 flex items-center justify-between shrink-0">
+                      <button onClick={handlePrevMonth} className="flex items-center justify-center h-8 w-8 lg:h-9 lg:w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
+                        <ChevronLeft size={20} />
+                      </button>
+                      <div className="text-center flex-1">
+                        <h1 className="text-xl lg:text-2xl font-black text-gray-800 tracking-tight">{monthNames[dateObj.getMonth()]}</h1>
+                        <p className="text-[10px] lg:text-[11px] font-bold text-gray-400 tracking-widest uppercase lg:mt-0.5">{dateObj.getFullYear()}</p>
+                      </div>
+                      <button onClick={handleNextMonth} className="flex items-center justify-center h-8 w-8 lg:h-9 lg:w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                    
+                    <div className="flex flex-col lg:flex-row flex-1 min-h-0 bg-white">
+                      {/* CALENDAR GRID */}
+                      <div className="w-full lg:w-[55%] px-3 py-2 sm:px-4 sm:py-3 lg:px-4 lg:py-4 shrink-0 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-gray-100 min-h-0">
+                        <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-1 lg:mb-3 shrink-0">
+                          {weekDays.map((day) => (
+                            <div key={day} className="text-center font-bold text-[9px] lg:text-[10px] text-gray-400 py-0.5 lg:py-1 uppercase tracking-widest">{day}</div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-y-0.5 gap-x-1 sm:gap-y-1 lg:gap-y-2 lg:gap-x-2 pb-0.5 lg:pb-1">
+                          {wks.map((week, weekIndex) =>
+                            week.map((day, dayIndex) => (
+                              <div key={`${weekIndex}-${dayIndex}`} className="flex justify-center" onClick={() => day && isSameMonth(day, dateObj) && handleDayClick(day)}>
+                                {day && isSameMonth(day, dateObj) ? (
+                                  <div className={getDayClassesInner(day)} title={format(day, "EEEE, MMMM d, yyyy")}>{format(day, "d")}</div>
+                                ) : day ? (
+                                  <div className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center text-xs sm:text-sm lg:text-base text-gray-300 font-semibold bg-transparent">{format(day, "d")}</div>
+                                ) : (
+                                  <div className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 bg-transparent"></div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* NOTES PANEL */}
+                      <div className="w-full lg:w-[45%] flex flex-col shrink-0 flex-1 min-h-[140px] bg-white border-l border-gray-50 overflow-hidden">
+                        <div className="px-4 py-2 shrink-0 border-b border-gray-50 flex items-center justify-between">
+                          <h3 className="text-[10px] lg:text-[11px] font-bold text-gray-700">📅 {getCurrentSelectionLabel()}</h3>
+                          {(startDate || endDate) && <button onClick={handleClearRange} className="text-[9px] text-gray-400 hover:text-gray-700 transition-colors">Clear</button>}
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5 lg:space-y-2 min-h-[50px]">
+                          {pageNotes.length === 0 ? (
+                            <p className="text-[11px] lg:text-[12px] text-gray-300 italic py-2">No notes for {monthNames[dateObj.getMonth()]}.</p>
+                          ) : (
+                            pageNotes.map((note) => (
+                              <div key={note.id} className="p-2 lg:p-3 rounded-lg bg-gray-50 border border-gray-200">
+                                <div className="flex items-start justify-between gap-2 mb-0.5 lg:mb-1">
+                                  <span className="text-[9px] lg:text-[10px] font-semibold text-gray-500">{getNoteDateLabel(note)}</span>
+                                  <button onClick={() => handleDeleteNote(note.id)} className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0" title="Delete note"><X size={12} /></button>
+                                </div>
+                                <p className="text-[11px] lg:text-[12px] text-gray-700 break-words whitespace-pre-wrap">{note.content}</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div className="px-4 py-2 border-t border-gray-50 shrink-0 bg-transparent">
+                          <textarea
+                            value={tempNoteContent}
+                            onChange={handleNotesChange}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Add a Note..."
+                            className="w-full px-2 py-1.5 lg:py-2 text-[11px] lg:text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-10 lg:h-16"
+                          />
+                          <button
+                            onClick={handleAddNote}
+                            disabled={!tempNoteContent.trim()}
+                            className="mt-1.5 lg:mt-2 w-full px-2 py-1.5 lg:py-2 bg-blue-500 text-white text-[11px] lg:text-[12px] font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Add Note
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              );
+            };
 
+            return (
+              <div className="relative flex-1 w-full h-full min-h-0 bg-transparent z-10 rounded-xl overflow-hidden" style={{ perspective: '1500px' }}>
+                
+                {/* 1) STATIC BACKGROUND LAYER (Shows the month we are going TO, underneath the lifting page) */}
+                <div className="w-full h-full bg-white flex-1 relative z-0">
+                  {renderCalendarContent(
+                    flipState.direction === 'prev' ? flipState.oldDate : currentDate,
+                    flipState.direction === 'prev' ? flipState.oldNotes : notes,
+                    !!flipState.direction // Lock pointer events during turn
+                  )}
+                </div>
+
+                {/* 2) 3D ANIMATING PAGE LAYER */}
+                {flipState.direction && (
+                  <div className={`absolute inset-0 z-10 ${flipState.direction === 'next' ? 'anim-turn-next' : 'anim-turn-prev'}`} style={{ transformStyle: 'preserve-3d' }}>
+                    
+                    {/* Front Face of Page */}
+                    <div className="absolute inset-0 bg-white shadow-lg overflow-hidden rounded-xl" style={{ backfaceVisibility: 'hidden' }}>
+                      {renderCalendarContent(
+                        flipState.direction === 'next' ? flipState.oldDate : currentDate,
+                        flipState.direction === 'next' ? flipState.oldNotes : notes,
+                        true
+                      )}
+                    </div>
+                    
+                    {/* Back Face of Page */}
+                    <div className="absolute inset-0 bg-gray-100/90 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-200/50 flex items-center justify-center opacity-95" 
+                         style={{ backfaceVisibility: 'hidden', transform: 'rotateX(180deg)', boxShadow: 'inset 0 0 50px rgba(0,0,0,0.05)' }}>
+                       <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
+                    </div>
+
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* ======================== */}
