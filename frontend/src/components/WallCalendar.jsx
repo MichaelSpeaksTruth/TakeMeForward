@@ -76,7 +76,7 @@ export default function WallCalendar() {
   const [endDate, setEndDate] = useState(null);
   const [notes, setNotes] = useState([]);
   const [tempNoteContent, setTempNoteContent] = useState("");
-  const [isFlipping, setIsFlipping] = useState(false);
+  const [flipDirection, setFlipDirection] = useState(null);
 
   // ========================
   // UTILITIES
@@ -137,27 +137,36 @@ export default function WallCalendar() {
   /**
    * Navigate to the previous month
    */
+  /**
+   * Navigate to the previous month
+   */
   const handlePrevMonth = () => {
-    setIsFlipping(true);
+    if (flipDirection) return; // Prevent double clicking
+    setFlipDirection("prev");
     setTimeout(() => {
       setCurrentDate(subMonths(currentDate, 1));
       setStartDate(null);
       setEndDate(null);
-      setIsFlipping(false);
-    }, 300);
+    }, 400); // perfectly hits the 50% mark of 0.8s animation
+    setTimeout(() => {
+      setFlipDirection(null);
+    }, 800);
   };
 
   /**
    * Navigate to the next month
    */
   const handleNextMonth = () => {
-    setIsFlipping(true);
+    if (flipDirection) return; // Prevent double clicking
+    setFlipDirection("next");
     setTimeout(() => {
       setCurrentDate(addMonths(currentDate, 1));
       setStartDate(null);
       setEndDate(null);
-      setIsFlipping(false);
-    }, 300);
+    }, 400);
+    setTimeout(() => {
+      setFlipDirection(null);
+    }, 800);
   };
 
   /**
@@ -289,9 +298,9 @@ export default function WallCalendar() {
   // ========================
   // DETERMINE DAY STYLING CLASSES
   // ========================
-    const getDayClasses = (day) => {
+  const getDayClasses = (day) => {
     const baseClasses =
-      "h-8 w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center rounded-full font-bold text-sm lg:text-base cursor-pointer transition-all duration-200 hover:shadow";
+      "h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center rounded-full font-bold text-xs sm:text-sm lg:text-base cursor-pointer transition-all duration-200 hover:shadow";
 
     // Day not in current month
     if (!isSameMonth(day, currentDate)) {
@@ -356,41 +365,65 @@ export default function WallCalendar() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#E8E4D9] overflow-hidden flex items-center justify-center p-0 xl:p-8">
+    <div className="fixed inset-0 bg-[#DCD8CB] overflow-hidden flex items-center justify-center p-0 xl:p-8">
       {/* Wall Texture Background */}
       <style>{`
         .wall-bg {
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
-          box-shadow: inset 0 0 120px rgba(0,0,0,0.15);
+          background-color: #E2DFD3;
+          background-image: 
+            radial-gradient(circle at 15% 10%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 50%),
+            radial-gradient(circle at 85% 90%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 60%),
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.16'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='plaster'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23plaster)' opacity='0.25'/%3E%3C/svg%3E");
+          box-shadow: inset 0 0 150px rgba(20,15,10,0.15), inset 0 0 40px rgba(20,15,10,0.08);
         }
         @keyframes slideIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes flipCard {
+        @keyframes pageTurnNext {
           0% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
-          49% { transform: rotateX(90deg); opacity: 0.5; filter: brightness(0.8); }
-          51% { transform: rotateX(-90deg); opacity: 0; filter: brightness(1.2); }
+          40% { opacity: 1; filter: brightness(0.9); }
+          49.99% { transform: rotateX(90deg); opacity: 0; filter: brightness(0.8); }
+          50% { transform: rotateX(-90deg); opacity: 0; filter: brightness(0.8); }
+          60% { opacity: 1; filter: brightness(0.9); }
           100% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
         }
-        .calendar-flip {
-          animation: flipCard 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-          transform-origin: top center;
+        @keyframes pageTurnPrev {
+          0% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+          40% { opacity: 1; filter: brightness(0.9); }
+          49.99% { transform: rotateX(-90deg); opacity: 0; filter: brightness(0.8); }
+          50% { transform: rotateX(90deg); opacity: 0; filter: brightness(0.8); }
+          60% { opacity: 1; filter: brightness(0.9); }
+          100% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+        }
+        .paper-flip-next {
+          animation: pageTurnNext 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          transform-origin: center 20px;
           transform-style: preserve-3d;
+          backface-visibility: hidden;
+        }
+        .paper-flip-prev {
+          animation: pageTurnPrev 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          transform-origin: center 20px;
+          transform-style: preserve-3d;
+          backface-visibility: hidden;
         }
         .calendar-card {
           animation: slideIn 0.5s ease-out;
         }
       `}</style>
-      <div className="absolute inset-0 wall-bg"></div>
+      <div className="absolute inset-0 wall-bg mix-blend-multiply opacity-90"></div>
+      <div className="absolute inset-0 wall-bg opacity-30"></div>
 
       {/* Main Container - Desktop and Mobile Layout */}
-      <div className="relative z-10 w-full h-[100dvh] xl:h-auto flex flex-row gap-6 xl:gap-8 items-center justify-start xl:justify-center max-w-[1250px] mx-auto overflow-x-auto xl:overflow-visible snap-x snap-mandatory px-[5vw] xl:px-0 [&::-webkit-scrollbar]:hidden" style={{ perspective: isFlipping ? '1500px' : 'none', scrollbarWidth: 'none' }}>
+      <div className="relative z-10 w-full h-[100dvh] xl:h-auto flex flex-row gap-6 xl:gap-8 items-center justify-start xl:justify-center max-w-[1250px] mx-auto overflow-x-auto xl:overflow-visible snap-x snap-mandatory px-[5vw] xl:px-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
         
         {/* CALENDAR - Main Card (Left on Desktop, Top on Mobile) */}
-        <div className={`calendar-card ${isFlipping ? 'calendar-flip' : ''} bg-white rounded-xl overflow-hidden border border-gray-100 w-[90vw] xl:w-full max-w-[850px] flex flex-col relative shrink-0 snap-center`}
+        <div className={`calendar-card bg-white rounded-xl overflow-hidden border border-gray-200/60 w-[90vw] xl:w-full max-w-[850px] h-[92dvh] max-h-[750px] xl:h-auto xl:max-h-none flex flex-col relative shrink-0 snap-center`}
              style={{
-               boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)',
+               perspective: '1500px',
+               boxShadow: '0 45px 85px -20px rgba(30,20,15,0.35), 0 25px 35px -10px rgba(30,20,15,0.2), 0 10px 15px -5px rgba(30,20,15,0.1), inset 0 1px 0 rgba(255,255,255,0.8)'
              }}>
           
           {/* Wall Calendar Spiral Bindings - Minimalist */}
@@ -404,9 +437,9 @@ export default function WallCalendar() {
           </div>
           
           {/* Add a top padding so absolutely no content rendering begins inside the bindings area! */}
-          <div className="flex flex-col lg:flex-row w-full pt-10 bg-white relative z-10 rounded-xl overflow-hidden">
+          <div className={`flex flex-col lg:flex-row w-full pt-7 lg:pt-10 flex-1 min-h-0 h-full bg-white relative z-10 rounded-xl overflow-hidden ${flipDirection === 'next' ? 'paper-flip-next' : flipDirection === 'prev' ? 'paper-flip-prev' : ''}`}>
             {/* LEFT: Hero Image */}
-            <div className="w-full lg:w-[320px] aspect-[4/3] lg:aspect-auto lg:h-[420px] relative overflow-hidden bg-gray-100 shrink-0 border-r border-gray-200">
+            <div className="w-full lg:w-[320px] h-[22%] min-h-[100px] lg:h-[420px] relative overflow-hidden bg-gray-100 shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200">
               <img
                 src={monthImages[currentDate.getMonth()]}
                 alt={`${monthNames[currentDate.getMonth()]} Calendar`}
@@ -417,18 +450,18 @@ export default function WallCalendar() {
             </div>
             
             {/* RIGHT: Calendar Platform */}
-            <div className="flex-1 flex flex-col shrink-0 lg:h-[420px]">
+            <div className="flex-1 flex flex-col shrink-0 min-h-0 lg:h-[420px]">
 
               {/* Header & Navigate Merged */}
-              <div className="px-6 py-4 bg-white border-b border-gray-50 flex items-center justify-between shrink-0">
-                <button onClick={handlePrevMonth} className="flex items-center justify-center h-9 w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
+              <div className="px-4 py-2 lg:px-6 lg:py-4 bg-white border-b border-gray-50 flex items-center justify-between shrink-0">
+                <button onClick={handlePrevMonth} className="flex items-center justify-center h-8 w-8 lg:h-9 lg:w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
                   <ChevronLeft size={20} />
                 </button>
                 <div className="text-center flex-1">
-                  <h1 className="text-2xl font-black text-gray-800 tracking-tight">{monthNames[currentDate.getMonth()]}</h1>
-                  <p className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mt-0.5">{currentDate.getFullYear()}</p>
+                  <h1 className="text-xl lg:text-2xl font-black text-gray-800 tracking-tight">{monthNames[currentDate.getMonth()]}</h1>
+                  <p className="text-[10px] lg:text-[11px] font-bold text-gray-400 tracking-widest uppercase lg:mt-0.5">{currentDate.getFullYear()}</p>
                 </div>
-                <button onClick={handleNextMonth} className="flex items-center justify-center h-9 w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
+                <button onClick={handleNextMonth} className="flex items-center justify-center h-8 w-8 lg:h-9 lg:w-9 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 active:scale-95 transition-all">
                   <ChevronRight size={20} />
                 </button>
               </div>
@@ -437,13 +470,13 @@ export default function WallCalendar() {
               <div className="flex flex-col lg:flex-row flex-1 min-h-0 bg-white">
 
                 {/* CALENDAR GRID */}
-                <div className="w-full lg:w-[55%] px-4 py-4 shrink-0 flex flex-col border-r border-gray-100">
+                <div className="w-full lg:w-[55%] px-3 py-2 sm:px-4 sm:py-3 lg:px-4 lg:py-4 shrink-0 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-gray-100 min-h-0">
             {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-2 lg:mb-3 shrink-0">
+            <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-1 lg:mb-3 shrink-0">
               {weekDays.map((day) => (
                 <div
                   key={day}
-                  className="text-center font-bold text-[10px] lg:text-xs text-gray-400 py-1 uppercase tracking-widest"
+                  className="text-center font-bold text-[9px] lg:text-[10px] text-gray-400 py-0.5 lg:py-1 uppercase tracking-widest"
                 >
                   {day}
                 </div>
@@ -451,7 +484,7 @@ export default function WallCalendar() {
             </div>
 
             {/* Calendar Days Grid */}
-            <div className="grid grid-cols-7 gap-y-1 gap-x-1 lg:gap-y-2 lg:gap-x-2 pb-1">
+            <div className="grid grid-cols-7 gap-y-0.5 gap-x-1 sm:gap-y-1 lg:gap-y-2 lg:gap-x-2 pb-0.5 lg:pb-1">
               {weeks.map((week, weekIndex) =>
                 week.map((day, dayIndex) => (
                   <div
@@ -467,11 +500,11 @@ export default function WallCalendar() {
                         {format(day, "d")}
                       </div>
                     ) : day ? (
-                      <div className="h-8 w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center text-sm lg:text-base text-gray-300 font-semibold bg-transparent">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 mx-auto flex items-center justify-center text-xs sm:text-sm lg:text-base text-gray-300 font-semibold bg-transparent">
                         {format(day, "d")}
                       </div>
                     ) : (
-                      <div className="h-8 w-8 lg:h-10 lg:w-10 bg-transparent"></div>
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 bg-transparent"></div>
                     )}
                   </div>
                 ))
@@ -481,29 +514,29 @@ export default function WallCalendar() {
                 </div>
 
                 {/* NOTES PANEL - SIMPLIFIED */}
-                <div className="w-full lg:w-[45%] flex flex-col shrink-0 bg-white border-l border-gray-50">
+                <div className="w-full lg:w-[45%] flex flex-col shrink-0 flex-1 min-h-[140px] bg-white border-l border-gray-50 overflow-hidden">
                   {/* Header with current selection */}
-                  <div className="px-5 py-3 shrink-0 border-b border-gray-50">
-                    <h3 className="text-[11px] font-bold text-gray-700">📅 {getCurrentSelectionLabel()}</h3>
+                  <div className="px-4 py-2 shrink-0 border-b border-gray-50 flex items-center justify-between">
+                    <h3 className="text-[10px] lg:text-[11px] font-bold text-gray-700">📅 {getCurrentSelectionLabel()}</h3>
                     {(startDate || endDate) && (
                       <button
                         onClick={handleClearRange}
-                        className="text-[9px] text-gray-400 hover:text-gray-700 transition-colors mt-1"
+                        className="text-[9px] text-gray-400 hover:text-gray-700 transition-colors"
                       >
-                        Clear selection
+                        Clear
                       </button>
                     )}
                   </div>
 
                   {/* Notes List */}
-                  <div className="flex-grow overflow-y-auto px-5 py-3 space-y-2">
+                  <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5 lg:space-y-2 min-h-[50px]">
                     {notes.length === 0 ? (
-                      <p className="text-[12px] text-gray-300 italic py-4">No notes for {monthNames[currentDate.getMonth()]}. Add one below!</p>
+                      <p className="text-[11px] lg:text-[12px] text-gray-300 italic py-2">No notes for {monthNames[currentDate.getMonth()]}.</p>
                     ) : (
                       notes.map((note) => (
-                        <div key={note.id} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <span className="text-[10px] font-semibold text-gray-500">
+                        <div key={note.id} className="p-2 lg:p-3 rounded-lg bg-gray-50 border border-gray-200">
+                          <div className="flex items-start justify-between gap-2 mb-0.5 lg:mb-1">
+                            <span className="text-[9px] lg:text-[10px] font-semibold text-gray-500">
                               {getNoteDateLabel(note)}
                             </span>
                             <button
@@ -511,10 +544,10 @@ export default function WallCalendar() {
                               className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
                               title="Delete note"
                             >
-                              <X size={14} />
+                              <X size={12} />
                             </button>
                           </div>
-                          <p className="text-[12px] text-gray-700 break-words whitespace-pre-wrap">
+                          <p className="text-[11px] lg:text-[12px] text-gray-700 break-words whitespace-pre-wrap">
                             {note.content}
                           </p>
                         </div>
@@ -523,18 +556,18 @@ export default function WallCalendar() {
                   </div>
 
                   {/* Add Note Section - Textarea */}
-                  <div className="px-5 py-3 border-t border-gray-50 shrink-0 bg-transparent">
+                  <div className="px-4 py-2 border-t border-gray-50 shrink-0 bg-transparent">
                     <textarea
                       value={tempNoteContent}
                       onChange={handleNotesChange}
                       onKeyPress={handleKeyPress}
                       placeholder="Add a Note..."
-                      className="w-full px-3 py-2 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-16"
+                      className="w-full px-2 py-1.5 lg:py-2 text-[11px] lg:text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-10 lg:h-16"
                     />
                     <button
                       onClick={handleAddNote}
                       disabled={!tempNoteContent.trim()}
-                      className="mt-2 w-full px-3 py-2 bg-blue-500 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      className="mt-1.5 lg:mt-2 w-full px-2 py-1.5 lg:py-2 bg-blue-500 text-white text-[11px] lg:text-[12px] font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                     >
                       Add Note
                     </button>
@@ -552,8 +585,11 @@ export default function WallCalendar() {
         <div className="w-[90vw] xl:w-[340px] flex flex-col shrink-0 xl:shrink min-h-0 max-h-full snap-center pt-8 xl:pt-0">
 
           {/* Simple Wooden Table with Vase */}
-          <div className="calendar-card bg-gradient-to-b from-amber-50 to-orange-50 rounded-xl shadow-lg overflow-hidden border border-amber-200 p-4 lg:p-6 pb-2 lg:pb-2 flex flex-col items-center justify-end shrink-0 h-48 lg:h-[460px] min-h-[200px]"
-               style={{ perspective: '1200px' }}>
+          <div className="calendar-card bg-gradient-to-b from-amber-50 to-orange-50 rounded-xl overflow-hidden border border-amber-200/60 p-4 lg:p-6 pb-2 lg:pb-2 flex flex-col items-center justify-end shrink-0 h-48 lg:h-[460px] min-h-[200px]"
+               style={{ 
+                 perspective: '1200px',
+                 boxShadow: '0 45px 85px -20px rgba(30,20,15,0.35), 0 25px 35px -10px rgba(30,20,15,0.2), 0 10px 15px -5px rgba(30,20,15,0.1), inset 0 1px 0 rgba(255,255,255,0.8)'
+               }}>
             
             {/* Background */}
             <div className="absolute inset-0 bg-gradient-to-b from-amber-50 via-white to-orange-100 opacity-80"></div>
